@@ -10,7 +10,6 @@ const kMockNotMatchedError = Symbol.for('undici.error.UND_MOCK_ERR_MOCK_NOT_MATC
 class MockNotMatchedError extends UndiciError {
   constructor (message) {
     super(message)
-    Error.captureStackTrace(this, MockNotMatchedError)
     this.name = 'MockNotMatchedError'
     this.message = message || 'The request does not match any registered mock dispatches'
     this.code = 'UND_MOCK_ERR_MOCK_NOT_MATCHED'
@@ -20,7 +19,9 @@ class MockNotMatchedError extends UndiciError {
     return instance && instance[kMockNotMatchedError] === true
   }
 
-  [kMockNotMatchedError] = true
+  get [kMockNotMatchedError] () {
+    return true
+  }
 }
 
 module.exports = {
