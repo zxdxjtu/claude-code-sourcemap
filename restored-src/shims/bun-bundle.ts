@@ -17,7 +17,7 @@ const ENABLED_FEATURES = new Set<string>([
   'HISTORY_SNIP',
   'HOOK_PROMPTS',
   'FILE_PERSISTENCE',
-  'CACHED_MICROCOMPACT',
+  // 'CACHED_MICROCOMPACT', // disabled: not needed for external builds
   'COMPACTION_REMINDERS',
   'EXTRACT_MEMORIES',
   'MCP_SKILLS',

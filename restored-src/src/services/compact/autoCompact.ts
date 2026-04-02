@@ -27,7 +27,7 @@ import { trySessionMemoryCompaction } from './sessionMemoryCompact.js'
 
 // Reserve this many tokens for output during compaction
 // Based on p99.99 of compact summary output being 17,387 tokens.
-const MAX_OUTPUT_TOKENS_FOR_SUMMARY = 20_000
+const MAX_OUTPUT_TOKENS_FOR_SUMMARY = 10_000
 
 // Returns the context window size minus the max output tokens for the model
 export function getEffectiveContextWindowSize(model: string): number {
@@ -59,7 +59,7 @@ export type AutoCompactTrackingState = {
   consecutiveFailures?: number
 }
 
-export const AUTOCOMPACT_BUFFER_TOKENS = 13_000
+export const AUTOCOMPACT_BUFFER_TOKENS = 8_000
 export const WARNING_THRESHOLD_BUFFER_TOKENS = 20_000
 export const ERROR_THRESHOLD_BUFFER_TOKENS = 20_000
 export const MANUAL_COMPACT_BUFFER_TOKENS = 3_000

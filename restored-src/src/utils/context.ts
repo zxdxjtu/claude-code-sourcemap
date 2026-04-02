@@ -21,22 +21,18 @@ const MAX_OUTPUT_TOKENS_UPPER_LIMIT = 64_000
 // (see query.ts max_output_tokens_escalate). Cap is applied in
 // claude.ts:getMaxOutputTokensForModel to avoid the growthbook→betas→context
 // import cycle.
-export const CAPPED_DEFAULT_MAX_TOKENS = 8_000
-export const ESCALATED_MAX_TOKENS = 64_000
+export const CAPPED_DEFAULT_MAX_TOKENS = 4_000
+export const ESCALATED_MAX_TOKENS = 16_384
 
 /**
- * Check if 1M context is disabled via environment variable.
- * Used by C4E admins to disable 1M context for HIPAA compliance.
+ * 1M context detection simplified — always returns false.
  */
 export function is1mContextDisabled(): boolean {
-  return isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_1M_CONTEXT)
+  return true
 }
 
-export function has1mContext(model: string): boolean {
-  if (is1mContextDisabled()) {
-    return false
-  }
-  return /\[1m\]/i.test(model)
+export function has1mContext(_model: string): boolean {
+  return false
 }
 
 // @[MODEL LAUNCH]: Update this pattern if the new model supports 1M context

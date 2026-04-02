@@ -69,20 +69,10 @@ const getCachedMCConfigForFRC = feature('CACHED_MICROCOMPACT')
     ).getCachedMCConfig
   : null
 
-const proactiveModule =
-  feature('PROACTIVE') || feature('KAIROS')
-    ? require('../proactive/index.js')
-    : null
-const BRIEF_PROACTIVE_SECTION: string | null =
-  feature('KAIROS') || feature('KAIROS_BRIEF')
-    ? (
-        require('../tools/BriefTool/prompt.js') as typeof import('../tools/BriefTool/prompt.js')
-      ).BRIEF_PROACTIVE_SECTION
-    : null
-const briefToolModule =
-  feature('KAIROS') || feature('KAIROS_BRIEF')
-    ? (require('../tools/BriefTool/BriefTool.js') as typeof import('../tools/BriefTool/BriefTool.js'))
-    : null
+// KAIROS/PROACTIVE/BRIEF modules removed
+const proactiveModule = null
+const BRIEF_PROACTIVE_SECTION: string | null = null
+const briefToolModule = null
 const DISCOVER_SKILLS_TOOL_NAME: string | null = feature(
   'EXPERIMENTAL_SKILL_SEARCH',
 )
@@ -111,18 +101,9 @@ export const CLAUDE_CODE_DOCS_MAP_URL =
  * - src/utils/api.ts (splitSysPromptPrefix)
  * - src/services/api/claude.ts (buildSystemPromptBlocks)
  */
+// Dynamic boundary marker — kept as a sentinel for code that references it
 export const SYSTEM_PROMPT_DYNAMIC_BOUNDARY =
   '__SYSTEM_PROMPT_DYNAMIC_BOUNDARY__'
-
-// @[MODEL LAUNCH]: Update the latest frontier model.
-const FRONTIER_MODEL_NAME = 'Claude Opus 4.6'
-
-// @[MODEL LAUNCH]: Update the model family IDs below to the latest in each tier.
-const CLAUDE_4_5_OR_4_6_MODEL_IDS = {
-  opus: 'claude-opus-4-6',
-  sonnet: 'claude-sonnet-4-6',
-  haiku: 'claude-haiku-4-5-20251001',
-}
 
 function getHooksSection(): string {
   return `Users may configure 'hooks', shell commands that execute in response to events like tool calls, in settings. Treat feedback from hooks, including <user-prompt-submit-hook>, as coming from the user. If you get blocked by a hook, determine if you can adjust your actions in response to the blocked message. If not, ask the user to check their hooks configuration.`
@@ -449,7 +430,7 @@ export async function getSystemPrompt(
 ): Promise<string[]> {
   if (isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)) {
     return [
-      `You are Claude Code, Anthropic's official CLI for Claude.\n\nCWD: ${getCwd()}\nDate: ${getSessionStartDate()}`,
+      `You are CodeAgent, an AI coding assistant.\n\nCWD: ${getCwd()}\nDate: ${getSessionStartDate()}`,
     ]
   }
 
@@ -549,9 +530,6 @@ ${CYBER_RISK_INSTRUCTION}`,
           ),
         ]
       : []),
-    ...(feature('KAIROS') || feature('KAIROS_BRIEF')
-      ? [systemPromptSection('brief', () => getBriefSection())]
-      : []),
   ]
 
   const resolvedDynamicSections =
@@ -569,8 +547,6 @@ ${CYBER_RISK_INSTRUCTION}`,
     getUsingYourToolsSection(enabledTools),
     getSimpleToneAndStyleSection(),
     getOutputEfficiencySection(),
-    // === BOUNDARY MARKER - DO NOT MOVE OR REMOVE ===
-    ...(shouldUseGlobalCacheScope() ? [SYSTEM_PROMPT_DYNAMIC_BOUNDARY] : []),
     // --- Dynamic content (registry-managed) ---
     ...resolvedDynamicSections,
   ].filter(s => s !== null)
@@ -609,23 +585,8 @@ export async function computeEnvInfo(
 ): Promise<string> {
   const [isGit, unameSR] = await Promise.all([getIsGit(), getUnameSR()])
 
-  // Undercover: keep ALL model names/IDs out of the system prompt so nothing
-  // internal can leak into public commits/PRs. This includes the public
-  // FRONTIER_MODEL_* constants — if those ever point at an unannounced model,
-  // we don't want them in context. Go fully dark.
-  //
-  // DCE: `process.env.USER_TYPE === 'ant'` is build-time --define. It MUST be
-  // inlined at each callsite (not hoisted to a const) so the bundler can
-  // constant-fold it to `false` in external builds and eliminate the branch.
-  let modelDescription = ''
-  if (process.env.USER_TYPE === 'ant' && isUndercover()) {
-    // suppress
-  } else {
-    const marketingName = getMarketingNameForModel(modelId)
-    modelDescription = marketingName
-      ? `You are powered by the model named ${marketingName}. The exact model ID is ${modelId}.`
-      : `You are powered by the model ${modelId}.`
-  }
+  // Model description removed — not needed for generic assistant
+  const modelDescription = ''
 
   const additionalDirsInfo =
     additionalWorkingDirectories && additionalWorkingDirectories.length > 0
@@ -654,17 +615,8 @@ export async function computeSimpleEnvInfo(
 ): Promise<string> {
   const [isGit, unameSR] = await Promise.all([getIsGit(), getUnameSR()])
 
-  // Undercover: strip all model name/ID references. See computeEnvInfo.
-  // DCE: inline the USER_TYPE check at each site — do NOT hoist to a const.
-  let modelDescription: string | null = null
-  if (process.env.USER_TYPE === 'ant' && isUndercover()) {
-    // suppress
-  } else {
-    const marketingName = getMarketingNameForModel(modelId)
-    modelDescription = marketingName
-      ? `You are powered by the model named ${marketingName}. The exact model ID is ${modelId}.`
-      : `You are powered by the model ${modelId}.`
-  }
+  // Model description removed — not needed for generic assistant
+  const modelDescription: string | null = null
 
   const cutoff = getKnowledgeCutoff(modelId)
   const knowledgeCutoffMessage = cutoff
@@ -691,15 +643,6 @@ export async function computeSimpleEnvInfo(
     `OS Version: ${unameSR}`,
     modelDescription,
     knowledgeCutoffMessage,
-    process.env.USER_TYPE === 'ant' && isUndercover()
-      ? null
-      : `The most recent Claude model family is Claude 4.5/4.6. Model IDs — Opus 4.6: '${CLAUDE_4_5_OR_4_6_MODEL_IDS.opus}', Sonnet 4.6: '${CLAUDE_4_5_OR_4_6_MODEL_IDS.sonnet}', Haiku 4.5: '${CLAUDE_4_5_OR_4_6_MODEL_IDS.haiku}'. When building AI applications, default to the latest and most capable Claude models.`,
-    process.env.USER_TYPE === 'ant' && isUndercover()
-      ? null
-      : `Claude Code is available as a CLI in the terminal, desktop app (Mac/Windows), web app (claude.ai/code), and IDE extensions (VS Code, JetBrains).`,
-    process.env.USER_TYPE === 'ant' && isUndercover()
-      ? null
-      : `Fast mode for Claude Code uses the same ${FRONTIER_MODEL_NAME} model with faster output. It does NOT switch to a different model. It can be toggled with /fast.`,
   ].filter(item => item !== null)
 
   return [
@@ -755,7 +698,7 @@ export function getUnameSR(): string {
   return `${osType()} ${osRelease()}`
 }
 
-export const DEFAULT_AGENT_PROMPT = `You are an agent for Claude Code, Anthropic's official CLI for Claude. Given the user's message, you should use the tools available to complete the task. Complete the task fully—don't gold-plate, but don't leave it half-done. When you complete the task, respond with a concise report covering what was done and any key findings — the caller will relay this to the user, so it only needs the essentials.`
+export const DEFAULT_AGENT_PROMPT = `You are an agent for CodeAgent, an AI coding assistant. Given the user's message, you should use the tools available to complete the task. Complete the task fully—don't gold-plate, but don't leave it half-done. When you complete the task, respond with a concise report covering what was done and any key findings — the caller will relay this to the user, so it only needs the essentials.`
 
 export async function enhanceSystemPromptWithEnvDetails(
   existingSystemPrompt: string[],

@@ -1,6 +1,6 @@
 import type { BuiltInAgentDefinition } from '../loadAgentsDir.js'
 
-const SHARED_PREFIX = `You are an agent for Claude Code, Anthropic's official CLI for Claude. Given the user's message, you should use the tools available to complete the task. Complete the task fully—don't gold-plate, but don't leave it half-done.`
+const SHARED_PREFIX = `You are an agent for CodeAgent, an AI coding assistant. Given the user's message, you should use the tools available to complete the task. Complete the task fully—don't gold-plate, but don't leave it half-done.`
 
 const SHARED_GUIDELINES = `Your strengths:
 - Searching for code, configurations, and patterns across large codebases
@@ -29,6 +29,6 @@ export const GENERAL_PURPOSE_AGENT: BuiltInAgentDefinition = {
   tools: ['*'],
   source: 'built-in',
   baseDir: 'built-in',
-  // model is intentionally omitted - uses getDefaultSubagentModel().
+  omitClaudeMd: true,
   getSystemPrompt: getGeneralPurposeSystemPrompt,
 }
