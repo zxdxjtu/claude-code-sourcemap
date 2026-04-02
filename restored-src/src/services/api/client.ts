@@ -351,32 +351,60 @@ function createFakeAnthropicClient(config: {
   return {
     beta: {
       messages: {
-        // Streaming create — returns stream.withResponse()
-        create: async (
+        // Streaming create — returns a thenable with .withResponse()
+        // Anthropic SDK returns a special object from .create() that is
+        // both a Promise (thenable) AND has a .withResponse() method,
+        // so callers can do: .create(...).withResponse()
+        create: (
           params: Record<string, unknown>,
           opts?: { signal?: AbortSignal; timeout?: number; headers?: Record<string, string> },
         ) => {
           if (params.stream) {
-            const response = await makeRequest(params, opts)
-            const stream = new AnthropicCompatStream(response, opts?.signal)
-            // Return object with .withResponse() for the streaming path
-            return Object.assign(stream, {
+            const innerPromise = (async () => {
+              const response = await makeRequest(params, opts)
+              const stream = new AnthropicCompatStream(response, opts?.signal)
+              return { stream, response }
+            })()
+
+            // Build a thenable that also has .withResponse()
+            const thenable = {
+              then: (resolve: (v: unknown) => void, reject: (e: unknown) => void) =>
+                innerPromise.then(({ stream }) => resolve(stream), reject),
+              catch: (reject: (e: unknown) => void) =>
+                innerPromise.catch(reject),
               withResponse: () =>
-                Promise.resolve({
+                innerPromise.then(({ stream, response }) => ({
                   data: stream,
                   request_id: response.headers.get('x-request-id') || randomUUID(),
                   response,
-                }),
-            })
+                })),
+            }
+            return thenable
           }
 
-          // Non-streaming path
-          const response = await makeRequest(
-            { ...params, stream: false },
-            opts,
-          )
-          const json = (await response.json()) as Record<string, unknown>
-          return convertNonStreamingResponse(json, config.model)
+          // Non-streaming path — also needs .withResponse() shape
+          const innerPromise = (async () => {
+            const response = await makeRequest(
+              { ...params, stream: false },
+              opts,
+            )
+            const json = (await response.json()) as Record<string, unknown>
+            return { result: convertNonStreamingResponse(json, config.model), response }
+          })()
+
+          const thenable = {
+            then: (resolve: (v: unknown) => void, reject: (e: unknown) => void) =>
+              innerPromise.then(({ result }) => resolve(result), reject),
+            catch: (reject: (e: unknown) => void) =>
+              innerPromise.catch(reject),
+            withResponse: () =>
+              innerPromise.then(({ result, response }) => ({
+                data: result,
+                request_id: response.headers.get('x-request-id') || randomUUID(),
+                response,
+              })),
+          }
+          return thenable
         },
 
         // Token counting — return rough estimate
